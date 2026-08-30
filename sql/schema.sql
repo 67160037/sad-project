@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS menu_items (
 
 -- ออเดอร์ — เก็บเฉพาะยอดรวม (total_amount) ตามขอบเขต sprint 1
 -- ไม่มีคอลัมน์ payment_method เพราะ "ชำระเงิน" (UC 3.2, US-02) เป็นคนละ Use Case
--- ที่ wk05.md ระบุชัดว่าไม่บังคับ implement ใน sprint นี้ (เฉพาะ "รับออเดอร์และคำนวณราคา" เท่านั้น)
 -- status ไว้เผื่อสัปดาห์ถัดไปที่จะต่อ endpoint ชำระเงิน (PATCH /api/orders/:id/pay) เปลี่ยนเป็น 'paid'
 CREATE TABLE IF NOT EXISTS orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -37,3 +36,10 @@ INSERT INTO menu_items (name, price, stock_quantity, low_stock_threshold) VALUES
   ('ครัวซองต์', 35.00, 5, 10),
   ('เอสเปรสโซ่', 40.00, 0, 10);
 -- 'เอสเปรสโซ่' ตั้งใจใส่ stock_quantity = 0 ไว้ทดสอบ Exception Flow 2a (เมนูหมดชั่วคราว)
+
+CREATE TABLE orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  payment_method VARCHAR(20) NOT NULL,
+  total_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL
+);
