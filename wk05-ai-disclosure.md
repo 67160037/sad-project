@@ -14,9 +14,12 @@ Use Case Diagram และ Use Case Description 3.1 "รับออเดอร
 
 ### 3. สมาชิกที่อธิบายโค้ดส่วนนี้ได้ (ต้องมีอย่างน้อย 1 คนต่อส่วน):
 
-[ชื่อ]
+1. 67160035 ปาฏลี แก้วมณี
 
 ### 4. โค้ด/schema/สถาปัตยกรรมมีจุดใดต่างจาก diagram เดิมหรือไม่:
 
 - [ ] ไม่ต่าง
 - [x] ต่าง — เหตุผล: ดูรายละเอียดทั้ง 4 ข้อในหัวข้อ "2. จุดที่ implement ต่างจาก wk04-user-stories.md" ด้านบน (ไม่รวม paymentMethod ในสต็อป, simplify สต็อกเป็นต่อเมนู, เพิ่ม validation implied, ตัดคอลัมน์ payment_method) และได้ปรับปรุง diagram สัปดาห์นี้ให้ตรงแล้ว: [ ] แล้ว [x] ยังไม่ได้ปรับ (ตามหลักการ wk05.md ข้อ 4.1 จะปรับ diagram ต้นทางในสัปดาห์ถัดไปที่เกี่ยวข้อง เช่น wk06 Class Diagram หรือ wk07 ER Diagram)
+
+repo link : https://github.com/67160037/sa-d--Arai-kor-dai--cafe-system/
+commit link : https://github.com/67160037/sa-d--Arai-kor-dai--cafe-system/commit/febe6b66a7a047646a4e9a023d3a5bfba29f5070
