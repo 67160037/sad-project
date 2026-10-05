@@ -1,16 +1,16 @@
 // src/controllers/orderController.js
-// Migrate จาก wk05 ให้ใช้ schema ใหม่ของ wk07 (orders + order_item แยกกัน)
-
 const orderModel = require("../models/orderModel");
 const orderItemModel = require("../models/orderItemModel");
 const menuItemModel = require("../models/menuItemModel");
 const { Order } = require("../models/Order");
 
+// ==========================================
+// ส่วนที่ 1: สร้างออเดอร์ (สถานะ pending ยังไม่ตัดสต็อก)
+// ==========================================
 exports.createOrder = async (req, res) => {
   const { branchId, employeeId, paymentMethod, items } = req.body;
 
-  // ---- เพิ่มใหม่ใน wk07: ตรวจสอบข้อมูล FK ตาม ER Diagram (สาขา, พนักงาน) ----
-  // จำเป็นต้องมีเพราะตาราง orders ใหม่บังคับใช้เป็น Foreign Key (NOT NULL)
+  // 1. ตรวจสอบข้อมูลนำเข้าเบื้องต้น
   if (!Number.isInteger(branchId) || !Number.isInteger(employeeId)) {
     return res
       .status(400)
@@ -19,17 +19,11 @@ exports.createOrder = async (req, res) => {
   if (!paymentMethod) {
     return res.status(400).json({ error: "ต้องระบุวิธีการชำระเงิน" });
   }
-
-  // ---- ตรงกับ Main Flow ข้อ 1 (พนักงานเลือกรายการเมนู) — เหมือน wk05 เดิมทุกประการ ----
-  // ต้องมีอย่างน้อย 1 รายการ
   if (!Array.isArray(items) || items.length === 0) {
     return res
       .status(400)
       .json({ error: "ต้องมีรายการเมนูอย่างน้อย 1 รายการ" });
   }
-
-  // ---- ตรงกับ Main Flow ข้อ 3 (พนักงานระบุจำนวนของแต่ละรายการ) — เหมือน wk05 เดิมทุกประการ ----
-  // ตรวจสอบรูปแบบข้อมูลว่าส่ง id และ quantity มาเป็นตัวเลขที่ถูกต้อง
   const hasInvalidShape = items.some(
     (item) =>
       !Number.isInteger(item.menuItemId) ||
@@ -43,85 +37,83 @@ exports.createOrder = async (req, res) => {
     });
   }
 
-  // ---- ตรงกับ Main Flow ข้อ 2 (ระบบตรวจสอบว่าเมนูที่เลือกมีวัตถุดิบเพียงพอ) — ขั้นตอนดึงข้อมูลจากฐานข้อมูล ----
-  const menuItemIds = items.map((item) => item.menuItemId);
+  // 2. รวมจำนวนรายการที่เป็นเมนูเดียวกัน
+  const quantityByMenuItemId = new Map();
+  for (const item of items) {
+    quantityByMenuItemId.set(
+      item.menuItemId,
+      (quantityByMenuItemId.get(item.menuItemId) || 0) + item.quantity,
+    );
+  }
+
+  const menuItemIds = [...quantityByMenuItemId.keys()];
   const menuItems = await menuItemModel.findByIds(menuItemIds);
   const menuItemMap = new Map(menuItems.map((m) => [m.id, m]));
 
-  // ---- ตรงกับ Exception Flow (เสริม): กรณีไม่พบเมนูนี้ในระบบเลย — เหมือน wk05 เดิม ----
-  // ป้องกันข้อผิดพลาดกรณีลูกค้าระบุ id ที่ไม่มีอยู่จริงก่อนไปตรวจสอบสต็อก
-  for (const item of items) {
-    const menuItem = menuItemMap.get(item.menuItemId);
-
+  // 3. ตรวจสอบเมนูและสาขา
+  for (const menuItemId of menuItemIds) {
+    const menuItem = menuItemMap.get(menuItemId);
     if (!menuItem) {
       return res
         .status(400)
-        .json({ error: `ไม่พบเมนู id ${item.menuItemId} ในระบบ` });
+        .json({ error: `ไม่พบเมนู id ${menuItemId} ในระบบ` });
     }
-
-    // ---- เพิ่มใหม่ใน wk07: เมนูต้องอยู่สาขาเดียวกับออเดอร์ ----
-    // สอดคล้องกับ ER Diagram ที่ผูก menu_item กับ branch_id เข้าด้วยกัน
     if (menuItem.branch_id !== branchId) {
       return res
         .status(400)
         .json({ error: `เมนู "${menuItem.name}" ไม่ได้อยู่ในสาขาที่ระบุ` });
     }
+  }
 
-    // ---- ตรงกับ Exception Flow 2a (วัตถุดิบของเมนูที่เลือกไม่เพียงพอ) — เหมือน wk05 เดิม ----
-    if (menuItem.stock_quantity < item.quantity) {
+  // 4. เช็คสต็อกเบื้องต้นว่าพอหรือไม่ (ยังไม่ตัดจริง)
+  for (const [menuItemId, totalQuantity] of quantityByMenuItemId) {
+    const menuItem = menuItemMap.get(menuItemId);
+    if (menuItem.stock_quantity < totalQuantity) {
       return res.status(400).json({
         error: `เมนู "${menuItem.name}" หมดชั่วคราว ไม่สามารถเพิ่มรายการนี้ได้`,
       });
     }
   }
 
-  // ---- ตรงกับ Main Flow ข้อ 4 (ระบบคำนวณราคารวม) — เริ่มต้นเรียกใช้ OOP สัปดาห์ที่ 6 ----
+  // 5. สร้าง Order Class เพื่อเตรียมข้อมูล
   const order = new Order(paymentMethod);
-
   items.forEach((item) => {
     const menuItem = menuItemMap.get(item.menuItemId);
-    // เพิ่มเมนูเข้า Class เพื่อให้ OrderItem เก็บ Snapshot ของราคา (unitPrice) เอาไว้
     order.addItem(menuItem, item.quantity);
   });
-
-  // ---- ตรงกับ Main Flow ข้อ 4 (ระบบคำนวณราคารวม) — คำนวณผ่าน Encapsulation ของ Class ----
   const totalAmount = order.calculateTotal();
 
   try {
-    // ---- ตรงกับ Main Flow ข้อ 5 (ระบบบันทึกรายการสั่งซื้อ) — บันทึกลงตาราง orders ----
-    // เปลี่ยนจาก wk05: ไม่มียอดรวม (total_amount) เก็บใน DB แล้ว เพื่อป้องกัน Update Anomaly ตามหลัก 3NF
+    // 6. บันทึกข้อมูลลงฐานข้อมูล (สถานะจะเป็น pending ตาม default ของ model)
     const orderId = await orderModel.create({
       branchId,
       employeeId,
       paymentMethod,
     });
 
-    // ---- ตรงกับ Main Flow ข้อ 5 (ระบบบันทึกรายการสั่งซื้อ) — บันทึกลงตาราง order_item ทีละรายการ ----
     for (const orderItem of order.items) {
       await orderItemModel.addItem({
-        orderId: orderId,
+        orderId,
         menuId: orderItem.menuItem.id,
         quantity: orderItem.quantity,
-        // ใช้ Snapshot ราคา ณ ตอนสั่งซื้อที่ OOP คลาสเก็บไว้ แทนการดึงราคาปัจจุบันมาเก็บ
         unitPrice: orderItem.unitPrice,
       });
+      // นำ decreaseStock ออกจากตรงนี้ เพื่อให้ตรงกับ Sequence Diagram ที่ให้ตัดตอนชำระเงิน
     }
 
-    // ---- ตรงกับ Main Flow ข้อ 6 (ระบบแสดงยอดรวมเพื่อดำเนินการต่อ) ----
-    // ตอบกลับ Client ด้วยยอดรวม totalAmount ที่เป็น Derived value (คำนวณสด)
     res.status(201).json({
       orderId,
       branchId,
       employeeId,
       paymentMethod,
       totalAmount,
-      status: "pending",
+      status: "pending", // ยืนยันสถานะรอชำระเงิน
       items: order.items.map((orderItem) => ({
         menuItemId: orderItem.menuItem.id,
         name: orderItem.menuItem.name,
         unitPrice: orderItem.unitPrice,
         quantity: orderItem.quantity,
-        subtotal: orderItem.getSubtotal(), // ดึงค่า Subtotal ผ่าน Method ของ Class
+        subtotal: orderItem.getSubtotal(),
       })),
     });
   } catch (err) {
@@ -130,9 +122,104 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-// ---- ฟังก์ชันเสริมที่ขาดหายไป ----
+// ==========================================
+// ส่วนที่ 2: ชำระเงินและตัดสต็อกอัตโนมัติ (Transaction)
+// ==========================================
+exports.payOrder = async (req, res) => {
+  const { id } = req.params;
+  const { cashReceived } = req.body;
 
-// ดึงรายการออเดอร์ทั้งหมด
+  try {
+    // 1. ดึงข้อมูลออเดอร์และเช็คสถานะ
+    const order = await orderModel.findById(id);
+    if (!order) {
+      return res.status(404).json({ error: "ไม่พบออเดอร์นี้" });
+    }
+    if (order.status !== "pending") {
+      return res
+        .status(409)
+        .json({ error: "ออเดอร์นี้ชำระเงินไปแล้วหรือถูกยกเลิก" });
+    }
+
+    // 2. คำนวณยอดรวมจาก order_item
+    const items = await orderItemModel.findByOrderId(id);
+    const totalAmount = items.reduce(
+      (sum, item) => sum + item.quantity * item.unit_price,
+      0,
+    );
+
+    // 3. ตรวจสอบเงินสด (กรณีจ่ายด้วยเงินสด)
+    let change = 0;
+    if (order.payment_method === "cash") {
+      if (cashReceived === undefined || cashReceived < totalAmount) {
+        return res.status(400).json({ error: "จำนวนเงินสดรับมาไม่เพียงพอ" });
+      }
+      change = cashReceived - totalAmount;
+    }
+    // กรณีเงินโอน (transfer) change จะคงค่าเป็น 0 ตามที่กำหนดไว้
+
+    // 4. เข้าสู่ระบบ Transaction: อัปเดตสถานะ, ตัดสต็อก, บันทึกประวัติ
+    const deductions = items.map((item) => ({
+      menuId: item.menu_id,
+      quantity: item.quantity,
+    }));
+    await orderModel.markPaid(id, deductions);
+
+    // 5. เช็คสต็อกคงเหลือว่ามีเมนูไหนต่ำกว่าเกณฑ์หรือไม่ (Low Stock Check) หลังจากการตัดสต็อกไปแล้ว
+    const menuIds = deductions.map((d) => d.menuId);
+    const updatedMenuItems = await menuItemModel.findByIds(menuIds);
+
+    const lowStockMenuIds = [];
+    for (const menu of updatedMenuItems) {
+      if (menu.stock_quantity < menu.low_stock_threshold) {
+        lowStockMenuIds.push(menu.id);
+      }
+    }
+
+    if (lowStockMenuIds.length > 0) {
+      console.warn("แจ้งเตือน: สต็อกใกล้หมด สำหรับ menu_id:", lowStockMenuIds);
+    }
+
+    // 6. ตอบกลับ 200 OK ตาม Diagram
+    res.status(200).json({
+      status: "paid",
+      change: change,
+      lowStockMenuIds: lowStockMenuIds,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการชำระเงินและตัดสต็อก" });
+  }
+};
+
+exports.getSalesSummary = async (req, res) => {
+  try {
+    const period = req.query.period || "today";
+    const reportData = await orderModel.getSalesSummary(period);
+    res.json(reportData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการดึงรายงานยอดขาย" });
+  }
+};
+
+exports.getMenuSales = async (req, res) => {
+  const branchId = Number(req.query.branchId);
+  if (!Number.isInteger(branchId) || branchId <= 0) {
+    return res.status(400).json({ error: "ต้องระบุ branchId เป็นจำนวนเต็ม" });
+  }
+  const period = req.query.period === "week" ? "week" : "today";
+  try {
+    res.json(await orderModel.getMenuSales(branchId, period));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการดึงยอดขายรายเมนู" });
+  }
+};
+
+// ==========================================
+// ฟังก์ชันดึงข้อมูลพื้นฐาน (ไม่เปลี่ยนจาก wk07)
+// ==========================================
 exports.getAllOrders = async (req, res) => {
   try {
     const orders = await orderModel.findAll();
@@ -143,17 +230,13 @@ exports.getAllOrders = async (req, res) => {
   }
 };
 
-// ดึงรายละเอียดออเดอร์ตาม ID พร้อมรายการสินค้า
 exports.getOrderById = async (req, res) => {
   try {
     const order = await orderModel.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ error: "ไม่พบออเดอร์นี้" });
     }
-
-    // ดึงรายการสินค้าจากตาราง order_item
     const items = await orderItemModel.findByOrderId(req.params.id);
-
     res.json({ ...order, items });
   } catch (err) {
     console.error(err);
