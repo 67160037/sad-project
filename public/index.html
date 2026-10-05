@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CAFE POS</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <aside class="side">
+      <div class="logo"><span>☕</span>ร้านกาแฟ</div>
+      <button class="nav on" data-p="pos">🧾 หน้ารับออเดอร์ (POS)</button>
+      <button class="nav" data-p="menu">📋 หน้าจัดการเมนู</button>
+      <button class="nav" data-p="report">📊 หน้ารายงานยอดขาย</button>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <button class="back" id="btn-back" hidden>← ย้อนกลับ</button>
+          <label for="branchId">สาขาปัจจุบัน</label>
+          <select
+            id="branchId"
+            onchange="
+              loadMenu();
+              renderReport();
+            "
+          >
+            <option value="1">สาขา 1 (บางแสน)</option>
+            <option value="2">สาขา 2 (ศรีราชา)</option>
+            <option value="3">สาขา 3 (พัทยา)</option>
+          </select>
+        </div>
+        <div class="user" id="emp-label">พนักงาน: สมหญิง (67160099)</div>
+      </header>
+
+      <section class="page on" id="pos">
+        <h1>รับออเดอร์ (Point of Sale)</h1>
+        <div class="layout">
+          <div class="shelf">
+            <div class="bar" id="chips">
+              <input
+                class="search"
+                id="q"
+                placeholder="ค้นหาเมนู..."
+                oninput="renderGrid()"
+              />
+            </div>
+            <div class="grid" id="grid"></div>
+          </div>
+          <aside class="receipt">
+            <div class="r-head">
+              <b>ออเดอร์ปัจจุบัน</b><span id="bill-tag">ยังไม่ยืนยัน</span>
+            </div>
+            <div class="lines" id="cart-list"></div>
+            <div class="foot">
+              <div class="sum">
+                <span>ยอดรวม</span><span id="sub-price">0.00</span>
+              </div>
+              <div class="total">
+                <span>ยอดสุทธิ</span><strong id="total-price">0.00 ฿</strong>
+              </div>
+              <div class="pm" id="pm">
+                <span class="pm-label">วิธีชำระเงิน</span>
+                <label class="pm-opt"
+                  ><input
+                    type="radio"
+                    name="pay-method"
+                    value="cash"
+                    checked
+                  /><span>💵 เงินสด</span></label
+                >
+                <label class="pm-opt"
+                  ><input
+                    type="radio"
+                    name="pay-method"
+                    value="transfer"
+                  /><span>📲 โอนเงิน (QR Code)</span></label
+                >
+              </div>
+              <button
+                class="btn"
+                id="btn-create"
+                onclick="confirmOrder()"
+                disabled
+              >
+                ยืนยันออเดอร์
+              </button>
+              <button
+                class="btn ghost"
+                id="btn-clear"
+                onclick="clearCart()"
+                style="display: none"
+              >
+                ล้างตะกร้า
+              </button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="menu">
+        <h1>จัดการข้อมูลเมนู (Menu Management)</h1>
+        <div class="bar">
+          <input
+            class="search"
+            style="margin: 0; width: 300px"
+            id="mq"
+            placeholder="ค้นหาด้วยรหัส หรือ ชื่อเมนู..."
+            oninput="renderMenuTable()"
+          />
+          <button
+            class="btn sm"
+            style="margin-left: auto"
+            onclick="openMenuForm()"
+          >
+            + เพิ่มเมนูใหม่
+          </button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>รหัส</th>
+                <th>ภาพ</th>
+                <th>ชื่อเมนู</th>
+                <th>หมวดหมู่</th>
+                <th>ราคา</th>
+                <th>สต็อกปัจจุบัน</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="mtable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page" id="report">
+        <h1>รายงานสรุปยอดขาย (Sales Summary)</h1>
+        <div class="bar">
+          <select id="period" onchange="renderReport()">
+            <option value="today">วันนี้</option>
+            <option value="week">สัปดาห์นี้</option>
+          </select>
+          <button class="btn sm" onclick="exportReport()">
+            ส่งออกรายงาน (PDF)
+          </button>
+          <button class="btn sm ghost" onclick="exportCsv()">
+            ดาวน์โหลด CSV
+          </button>
+        </div>
+        <div class="kpis" id="kpis"></div>
+        <div class="panel">
+          <h2>เปรียบเทียบยอดขายรายสาขา</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>สาขา</th>
+                <th>จำนวนออเดอร์</th>
+                <th>สัดส่วนชำระเงิน (สด / โอน)</th>
+                <th>ยอดขายรวม (บาท)</th>
+              </tr>
+            </thead>
+            <tbody id="rtable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div
+      class="modal"
+      id="checkout"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="co-title"
+    >
+      <div class="dialog">
+        <ol class="steps" id="steps">
+          <li>ยืนยันออเดอร์</li>
+          <li>ชำระเงิน</li>
+          <li>ใบเสร็จ</li>
+        </ol>
+
+        <div class="co-body" id="co-pay">
+          <h2 id="co-title">ชำระเงินสด</h2>
+          <div class="bill">บิล #<span id="display-order-id"></span></div>
+          <div class="co-lines" id="co-lines"></div>
+          <div class="total">
+            <span>ยอดที่ต้องชำระ</span><strong id="co-total">0.00 ฿</strong>
+          </div>
+          <div id="cash-box">
+            <label class="co-label" for="cash-received"
+              >เงินสดที่รับมา (บาท)</label
+            >
+            <input
+              type="number"
+              id="cash-received"
+              placeholder="0.00"
+              min="0"
+              oninput="showChange()"
+            />
+            <div class="quick" id="quick"></div>
+            <div class="change">
+              <span>เงินทอน</span><b id="change-preview">-</b>
+            </div>
+          </div>
+          <div class="tr-box" id="tr-box" hidden>
+            <div class="tr-qr">วางรูป QR Code<br />ของร้านที่นี่</div>
+            <p>
+              ให้ลูกค้าสแกนโอนตามยอดที่ต้องชำระ<br />แล้วกดยืนยันเมื่อได้รับเงินโอนแล้ว
+            </p>
+          </div>
+          <div class="co-actions">
+            <button class="btn ghost" onclick="closeCheckout()">
+              ย้อนกลับ
+            </button>
+            <button class="btn" id="btn-pay" onclick="payOrder()" disabled>
+              ยืนยันชำระเงิน
+            </button>
+          </div>
+        </div>
+
+        <div class="co-body" id="co-receipt" hidden>
+          <div class="slip" id="slip"></div>
+          <div class="co-actions">
+            <button class="btn ghost" onclick="window.print()">
+              พิมพ์ใบเสร็จ
+            </button>
+            <button class="btn" onclick="newOrder()">ปิด</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="modal"
+      id="menu-form"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mf-title"
+    >
+      <div class="dialog">
+        <div class="co-body">
+          <h2 id="mf-title">เพิ่มเมนูใหม่</h2>
+          <label class="co-label" for="mf-name">ชื่อเมนู</label>
+          <input type="text" id="mf-name" maxlength="100" />
+          <label class="co-label" for="mf-cat">หมวดหมู่</label>
+          <select id="mf-cat"></select>
+          <div class="mf-row">
+            <div>
+              <label class="co-label" for="mf-price">ราคา (บาท)</label>
+              <input type="number" id="mf-price" min="1" step="0.5" />
+            </div>
+            <div>
+              <label class="co-label" for="mf-stock">สต็อก (ชิ้น)</label>
+              <input type="number" id="mf-stock" min="0" step="1" />
+            </div>
+          </div>
+          <div class="co-actions">
+            <button class="btn ghost" onclick="closeMenuForm()">ยกเลิก</button>
+            <button class="btn" id="mf-save" onclick="saveMenu()">
+              บันทึก
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
