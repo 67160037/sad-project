@@ -201,7 +201,7 @@ exports.payOrder = async (req, res) => {
 exports.getSalesSummary = async (req, res) => {
   try {
     const period = req.query.period || "today";
-    const reportData = await orderModel.getSalesSummary(period);
+    const reportData = await orderModel.getSalesSummary(period, req.query.date);
     res.json(reportData);
   } catch (err) {
     console.error(err);
@@ -214,9 +214,11 @@ exports.getMenuSales = async (req, res) => {
   if (!Number.isInteger(branchId) || branchId <= 0) {
     return res.status(400).json({ error: "ต้องระบุ branchId เป็นจำนวนเต็ม" });
   }
-  const period = req.query.period === "week" ? "week" : "today";
+  const period = ["week", "date"].includes(req.query.period)
+    ? req.query.period
+    : "today";
   try {
-    res.json(await orderModel.getMenuSales(branchId, period));
+    res.json(await orderModel.getMenuSales(branchId, period, req.query.date));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "เกิดข้อผิดพลาดในการดึงยอดขายรายเมนู" });
@@ -254,7 +256,11 @@ exports.getBranchOrders = async (req, res) => {
     return res.status(400).json({ error: "ต้องระบุ branchId เป็นจำนวนเต็ม" });
   }
   try {
-    const orders = await orderModel.getBranchOrders(branchId, period);
+    const orders = await orderModel.getBranchOrders(
+      branchId,
+      period,
+      req.query.date,
+    );
     res.json(orders);
   } catch (err) {
     console.error(err);

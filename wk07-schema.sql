@@ -85,7 +85,7 @@ INSERT INTO branch (branch_id, name, address) VALUES
   (3, 'สาขา 3 (พัทยา)', 'ถ.เลียบชายหาด เมืองพัทยา จ.ชลบุรี');
 
 INSERT INTO employee (employee_id, branch_id, name, role) VALUES
-  (67160037, 1, 'พิชชาพร', 'cashier'),
+  (67160037, 1, 'ฟ้า', 'cashier'),
   (67160038, 2, 'สมชาย', 'cashier'),
   (67160039, 3, 'สมหญิง', 'cashier');
 

@@ -187,6 +187,11 @@ const Pos = {
 
   async confirmOrder() {
     if (this.orderId) return this.openCheckout();
+    if (!App.EMPLOYEE.id)
+      return App.toast(
+        "ไม่พบข้อมูลพนักงานของสาขานี้ ไม่สามารถสร้างออเดอร์ได้",
+        true,
+      );
     const payload = {
       branchId: Number(document.getElementById("branchId").value),
       employeeId: App.EMPLOYEE.id,

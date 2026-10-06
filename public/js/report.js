@@ -1,12 +1,45 @@
 const Report = {
   data: [],
 
-  async render() {
+  // วันที่ในเครื่องเป็นรูปแบบ YYYY-MM-DD
+  todayStr() {
+    return new Date().toLocaleDateString("sv-SE");
+  },
+
+  // แสดง/ซ่อนช่องเลือกวันที่ตามตัวเลือกช่วงเวลา
+  onPeriodChange() {
+    const isDate = document.getElementById("period").value === "date";
+    const input = document.getElementById("report-date");
+    input.hidden = !isDate;
+    if (isDate) {
+      input.max = this.todayStr();
+      if (!input.value) input.value = this.todayStr();
+    }
+    this.render();
+  },
+
+  // query string ช่วงเวลา ใช้กับทุก API ของรายงาน
+  periodQuery() {
     const period = document.getElementById("period").value;
+    if (period === "date") {
+      const d = document.getElementById("report-date").value || this.todayStr();
+      return `period=date&date=${d}`;
+    }
+    return `period=${period}`;
+  },
+
+  // วันที่ที่เลือก (YYYY-MM-DD) หรือ null ถ้าไม่ได้เลือกแบบวันที่
+  selectedDate() {
+    return document.getElementById("period").value === "date"
+      ? document.getElementById("report-date").value || this.todayStr()
+      : null;
+  },
+
+  async render() {
     const cur = Number(document.getElementById("branchId").value);
 
     const { ok, data } = await Api.get(
-      `/orders/reports/sales?period=${period}`,
+      `/orders/reports/sales?${this.periodQuery()}`,
     );
     if (!ok) return App.toast("โหลดรายงานยอดขายไม่สำเร็จ", true);
 
@@ -39,11 +72,10 @@ const Report = {
 
   // ฟังก์ชันเปิด Modal ดูรายละเอียดออเดอร์รายสาขา
   async openBranchModal(branchId, branchName) {
-    const period = document.getElementById("period")?.value || "today";
     App.showLoader();
     try {
       const { ok, data } = await Api.get(
-        `/orders/reports/branch-details?branchId=${branchId}&period=${period}`,
+        `/orders/reports/branch-details?branchId=${branchId}&${this.periodQuery()}`,
       );
       if (!ok) {
         App.toast("ไม่สามารถโหลดรายละเอียดได้", true);
@@ -90,8 +122,10 @@ const Report = {
   exportCsv() {
     if (!this.data.length)
       return App.toast("ยังไม่มีข้อมูลรายงานให้ส่งออก", true);
-    const periodName =
-      document.getElementById("period").selectedOptions[0].textContent;
+    const sel = this.selectedDate();
+    const periodName = sel
+      ? sel
+      : document.getElementById("period").selectedOptions[0].textContent;
     const csv =
       `\ufeffรายงานยอดขาย (${periodName})\nสาขา,ออเดอร์,สด,โอน,ยอดขาย\n` +
       this.data
@@ -110,7 +144,7 @@ const Report = {
   },
 
   // สร้างไฟล์ HTML เสมือนสำหรับสั่งพิมพ์เป็นรายงานเต็มรูปแบบ (PDF)
-  buildReportHtml({ period, branchName, menuRows }) {
+  buildReportHtml({ period, date, branchName, menuRows }) {
     const esc = (v) =>
       String(v).replace(
         /[&<>"]/g,
@@ -124,8 +158,9 @@ const Report = {
 
     const now = new Date(),
       money = (n) => App.fmt(Number(n)) + " บาท",
-      isWeek = period === "week";
-    const title = `รายงานสรุปยอดขาย${isWeek ? "สัปดาห์นี้" : "ประจำวัน"} - ${esc(branchName)}`;
+      isWeek = period === "week",
+      rd = period === "date" && date ? new Date(date + "T00:00:00") : now;
+    const title = `รายงานสรุปยอดขาย${isWeek ? "สัปดาห์นี้" : period === "date" ? "ประจำวันที่ " + thDate(rd) : "ประจำวัน"} - ${esc(branchName)}`;
 
     let menuHtml =
       '<tr><td colspan="4" class="c">ไม่สามารถโหลดยอดขายรายเมนูได้</td></tr>';
@@ -158,7 +193,7 @@ const Report = {
     <style>@page{size:A4;margin:14mm} *{-webkit-print-color-adjust:exact;print-color-adjust:exact} body{font-family:'Prompt','Sarabun',sans-serif;color:#111;margin:0} h1{text-align:center;font-size:22px;margin:0 0 14px} h2{font-size:16px;margin:20px 0 8px} table{width:100%;border-collapse:collapse;font-size:14px} th,td{border:1.5px solid #333;padding:6px 10px;vertical-align:middle} th{background:#d9d9d9;text-align:center;line-height:1.3} .sec td{background:#d9d9d9;font-weight:700} .c{text-align:center}.r{text-align:right} .gt td{background:#f1f1f1;font-weight:700} .foot{margin-top:10px;font-size:11px;color:#666}</style></head><body>
     <h1>${title}</h1>
     <table><tr class="sec"><td colspan="4">ข้อมูลเบื้องต้น / Base Information</td></tr>
-    <tr><td colspan="2">${isWeek ? "ช่วงเวลา: สัปดาห์นี้ (ถึงวันที่ " + thDate(now) + ")" : "วันที่: " + thDate(now)}</td><td colspan="2">พนักงาน: ${esc(App.EMPLOYEE.name)} (${App.EMPLOYEE.id})</td></tr>${menuHtml}</table>
+    <tr><td colspan="2">${isWeek ? "ช่วงเวลา: สัปดาห์นี้ (ถึงวันที่ " + thDate(now) + ")" : "วันที่: " + thDate(rd)}</td><td colspan="2">พนักงาน: ${esc(App.EMPLOYEE.name)} (${App.EMPLOYEE.id})</td></tr>${menuHtml}</table>
     <h2>เปรียบเทียบยอดขายรายสาขา (GROUP BY branch_id)</h2>
     <table><tr><th>สาขา</th><th>จำนวนออเดอร์</th><th>ชำระเงิน (สด / โอน)</th><th>ยอดขายรวม (บาท)</th></tr>${branchHtml}
     <tr class="gt"><td>รวมทั้งหมด<br>Grand Total</td><td class="c">${tot.o}</td><td class="c">${tot.c} / ${tot.t}</td><td class="r">${money(tot.s)}</td></tr></table>
@@ -169,6 +204,7 @@ const Report = {
     if (!this.data.length)
       return App.toast("ยังไม่มีข้อมูลรายงานให้ส่งออก", true);
     const period = document.getElementById("period").value;
+    const date = this.selectedDate();
     const branchId = Number(document.getElementById("branchId").value);
     const branchName =
       document.getElementById("branchId").selectedOptions[0].textContent;
@@ -176,7 +212,7 @@ const Report = {
 
     try {
       const { ok, data } = await Api.get(
-        `/orders/reports/menu-sales?branchId=${branchId}&period=${period}`,
+        `/orders/reports/menu-sales?branchId=${branchId}&${this.periodQuery()}`,
       );
       if (ok && Array.isArray(data)) menuRows = data;
     } catch (e) {}
@@ -187,7 +223,7 @@ const Report = {
         true,
       );
 
-    const html = this.buildReportHtml({ period, branchName, menuRows });
+    const html = this.buildReportHtml({ period, date, branchName, menuRows });
     const f = document.createElement("iframe");
     f.style.cssText =
       "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";

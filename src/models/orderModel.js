@@ -34,16 +34,19 @@ exports.findById = async (id) => {
 };
 
 // เงื่อนไขช่วงเวลาที่ใช้ร่วมกันในรายงานทุกตัว (today หรือ week เริ่มวันจันทร์)
-const periodCondition = (period) =>
-  period === "today"
-    ? "AND DATE(o.created_at) = CURDATE()"
-    : period === "week"
-      ? "AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)"
-      : "";
+const periodCondition = (period, date) => {
+  if (period === "date" && /^\d{4}-\d{2}-\d{2}$/.test(date || "")) {
+    // ผ่านการตรวจรูปแบบ YYYY-MM-DD แล้ว จึงปลอดภัยต่อ SQL injection
+    return `AND DATE(o.created_at) = '${date}'`;
+  }
+  return period === "week"
+    ? "AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)"
+    : "AND DATE(o.created_at) = CURDATE()";
+};
 
 // ดึงสรุปยอดขายแยกรายสาขาตามช่วงเวลา (today หรือ week เริ่มวันจันทร์)
-exports.getSalesSummary = async (period) => {
-  const dateCondition = periodCondition(period);
+exports.getSalesSummary = async (period, date) => {
+  const dateCondition = periodCondition(period, date);
 
   const query = `
     SELECT 
@@ -64,7 +67,7 @@ exports.getSalesSummary = async (period) => {
 };
 
 // ยอดขายรายเมนูของสาขาหนึ่ง ใช้ส่งออกรายงาน PDF (ตารางเมนู / จำนวนที่ขาย / ราคา / ยอดขาย)
-exports.getMenuSales = async (branchId, period) => {
+exports.getMenuSales = async (branchId, period, date) => {
   const [rows] = await pool.query(
     `SELECT m.menu_id AS id, m.name,
             SUM(oi.quantity) AS qty, oi.unit_price,
@@ -72,7 +75,7 @@ exports.getMenuSales = async (branchId, period) => {
      FROM orders o
      JOIN order_item oi ON oi.order_id = o.order_id
      JOIN menu_item m ON m.menu_id = oi.menu_id
-     WHERE o.status = 'paid' AND o.branch_id = ? ${periodCondition(period)}
+     WHERE o.status = 'paid' AND o.branch_id = ? ${periodCondition(period, date)}
      GROUP BY m.menu_id, m.name, oi.unit_price
      ORDER BY sales DESC`,
     [branchId],
@@ -80,8 +83,8 @@ exports.getMenuSales = async (branchId, period) => {
   return rows;
 };
 
-exports.getBranchOrders = async (branchId, period) => {
-  const dateCondition = periodCondition(period);
+exports.getBranchOrders = async (branchId, period, date) => {
+  const dateCondition = periodCondition(period, date);
   const [rows] = await pool.query(
     `SELECT o.order_id, o.created_at, o.payment_method, 
             oi.menu_id, m.name AS menu_name, oi.quantity, oi.unit_price,

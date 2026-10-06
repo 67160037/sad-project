@@ -1,5 +1,6 @@
 const App = {
-  EMPLOYEE: { id: 67160037, name: "พิชชาพร" },
+  // พนักงานที่กำลังใช้งาน — โหลดจากตาราง employee ใน MySQL (ดู loadEmployee)
+  EMPLOYEE: { id: null, name: "-" },
   MENU: [],
   CATS: [],
   CAT_TH: { Coffee: "กาแฟ", Bakery: "เบเกอรี่" },
@@ -62,8 +63,32 @@ const App = {
     };
   },
 
+  // โหลดพนักงานของสาขาที่เลือกจาก MySQL (ใช้พนักงานคนแรกของสาขา)
+  async loadEmployee() {
+    const branchId = Number(document.getElementById("branchId").value);
+    const label = document.getElementById("emp-label");
+    this.EMPLOYEE = { id: null, name: "-" };
+    label.textContent = "พนักงาน: กำลังโหลด...";
+    try {
+      const res = await Api.get(`/employees?branchId=${branchId}`);
+      if (res.ok && Array.isArray(res.data) && res.data.length) {
+        const e = res.data[0];
+        this.EMPLOYEE = { id: e.id, name: e.name };
+        label.textContent = `พนักงาน: ${e.name} (${e.id})`;
+        return;
+      }
+      console.error("employees API:", res);
+      label.textContent = "พนักงาน: ไม่พบข้อมูลในสาขานี้";
+      this.toast(res.data?.error || "โหลดข้อมูลพนักงานไม่สำเร็จ", true);
+    } catch (err) {
+      console.error(err);
+      label.textContent = "พนักงาน: โหลดไม่สำเร็จ";
+    }
+  },
+
   // ดึงข้อมูลพื้นฐานตั้งต้นทั้งหมด
   async initData() {
+    await this.loadEmployee();
     // โหลดหมวดหมู่จากพาท /categories ที่ถูกต้อง
     const resCat = await Api.get("/categories");
     if (resCat.ok && Array.isArray(resCat.data)) {

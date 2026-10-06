@@ -16,6 +16,9 @@ app.use(express.static("public"));
 const orderRoutes = require("./routes/orderRoutes");
 app.use("/api/orders", orderRoutes);
 
+const employeeRoutes = require("./routes/employeeRoutes");
+app.use("/api/employees", employeeRoutes);
+
 const menuRoutes = require("./routes/menuRoutes");
 app.use("/api/menu", menuRoutes);
 
