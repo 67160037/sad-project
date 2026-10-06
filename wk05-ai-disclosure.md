@@ -7,7 +7,7 @@ Use Case Diagram และ Use Case Description 3.1 "รับออเดอร
 ### 2. ส่วนที่ AI ช่วยเขียนโค้ด:
 
 - `src/config/db.js` (connection pool)
-- `src/models/menuItemModel.js`, `src/models/orderModel.js`
+- `src/models/menuModel.js`, `src/models/orderModel.js`
 - `src/controllers/orderController.js` (validation + คำนวณราคา + บันทึกออเดอร์)
 - `src/routes/orderRoutes.js`, `src/app.js`
 - `sql/schema.sql` (ตาราง `menu_items`, `orders` + ข้อมูลตัวอย่าง)

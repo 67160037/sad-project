@@ -1,7 +1,7 @@
 // src/controllers/menuController.js
 // ไฟล์ใหม่ของ wk09 — CRUD จัดการเมนู ตาม Workshop ขั้นตอนที่ 3
-// ทุก endpoint ต้องระบุ branchId เสมอ (ป้องกัน IDOR — ดูหมายเหตุใน menuItemModel.js)
-const menuItemModel = require("../models/menuItemModel");
+// ทุก endpoint ต้องระบุ branchId เสมอ (ป้องกัน IDOR — ดูหมายเหตุใน menuModel.js)
+const menuModel = require("../models/menuModel");
 
 exports.listMenu = async (req, res) => {
   const branchId = Number(req.query.branchId);
@@ -9,7 +9,7 @@ exports.listMenu = async (req, res) => {
     return res.status(400).json({ error: "ต้องระบุ branchId" });
   }
   try {
-    const rows = await menuItemModel.findByBranch(branchId);
+    const rows = await menuModel.findByBranch(branchId);
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -23,7 +23,7 @@ exports.getMenuById = async (req, res) => {
     return res.status(400).json({ error: "ต้องระบุ branchId" });
   }
   try {
-    const menu = await menuItemModel.findByIdAndBranch(req.params.id, branchId);
+    const menu = await menuModel.findByIdAndBranch(req.params.id, branchId);
     if (!menu) {
       return res
         .status(404)
@@ -57,7 +57,7 @@ exports.createMenu = async (req, res) => {
       .json({ error: "ต้องระบุ name และ price ที่เป็นตัวเลขมากกว่า 0" });
   }
   try {
-    const menuId = await menuItemModel.create({
+    const menuId = await menuModel.create({
       branchId,
       categoryId,
       name,
@@ -85,17 +85,13 @@ exports.updateMenu = async (req, res) => {
     return res.status(400).json({ error: "ต้องระบุ branchId เป็นจำนวนเต็ม" });
   }
   try {
-    const affectedRows = await menuItemModel.updateFields(
-      req.params.id,
-      branchId,
-      {
-        categoryId,
-        name,
-        price,
-        stockQuantity,
-        lowStockThreshold,
-      },
-    );
+    const affectedRows = await menuModel.updateFields(req.params.id, branchId, {
+      categoryId,
+      name,
+      price,
+      stockQuantity,
+      lowStockThreshold,
+    });
     if (affectedRows === 0) {
       return res
         .status(404)
@@ -114,7 +110,7 @@ exports.deleteMenu = async (req, res) => {
     return res.status(400).json({ error: "ต้องระบุ branchId" });
   }
   try {
-    const affectedRows = await menuItemModel.remove(req.params.id, branchId);
+    const affectedRows = await menuModel.remove(req.params.id, branchId);
     if (affectedRows === 0) {
       return res
         .status(404)
@@ -129,7 +125,7 @@ exports.deleteMenu = async (req, res) => {
 
 exports.listCategories = async (req, res) => {
   try {
-    res.json(await menuItemModel.listCategories());
+    res.json(await menuModel.listCategories());
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "เกิดข้อผิดพลาดในการดึงหมวดหมู่" });

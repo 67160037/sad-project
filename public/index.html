@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CAFE POS</title>
+    <title>CAFE POS (Pro Edition)</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -12,8 +12,11 @@
   </head>
   <body>
     <aside class="side">
-      <div class="logo"><span>☕</span>ร้านกาแฟ</div>
-      <button class="nav on" data-p="pos">🧾 หน้ารับออเดอร์ (POS)</button>
+      <div class="logo">
+        <span>☕</span>
+        Brew Haven
+      </div>
+      <button class="nav on" data-p="pos">🧾 หน้ารับออเดอร์</button>
       <button class="nav" data-p="menu">📋 หน้าจัดการเมนู</button>
       <button class="nav" data-p="report">📊 หน้ารายงานยอดขาย</button>
     </aside>
@@ -22,33 +25,20 @@
         <div>
           <button class="back" id="btn-back" hidden>← ย้อนกลับ</button>
           <label for="branchId">สาขาปัจจุบัน</label>
-          <select
-            id="branchId"
-            onchange="
-              loadMenu();
-              renderReport();
-            "
-          >
+          <select id="branchId" onchange="App.initData()">
             <option value="1">สาขา 1 (บางแสน)</option>
             <option value="2">สาขา 2 (ศรีราชา)</option>
             <option value="3">สาขา 3 (พัทยา)</option>
           </select>
         </div>
-        <div class="user" id="emp-label">พนักงาน: สมหญิง (67160099)</div>
+        <div class="user" id="emp-label">พนักงาน: พิชชาพร (67160037)</div>
       </header>
 
+      <!-- หน้ารับออเดอร์ -->
       <section class="page on" id="pos">
-        <h1>รับออเดอร์ (Point of Sale)</h1>
         <div class="layout">
           <div class="shelf">
-            <div class="bar" id="chips">
-              <input
-                class="search"
-                id="q"
-                placeholder="ค้นหาเมนู..."
-                oninput="renderGrid()"
-              />
-            </div>
+            <div class="bar" id="chips"></div>
             <div class="grid" id="grid"></div>
           </div>
           <aside class="receipt">
@@ -56,6 +46,8 @@
               <b>ออเดอร์ปัจจุบัน</b><span id="bill-tag">ยังไม่ยืนยัน</span>
             </div>
             <div class="lines" id="cart-list"></div>
+
+            <!-- ส่วนล่างของตะกร้า (ปุ่มยืนยัน / แก้ไข / ยกเลิก) -->
             <div class="foot">
               <div class="sum">
                 <span>ยอดรวม</span><span id="sub-price">0.00</span>
@@ -84,38 +76,61 @@
               <button
                 class="btn"
                 id="btn-create"
-                onclick="confirmOrder()"
+                onclick="Pos.confirmOrder()"
                 disabled
               >
                 ยืนยันออเดอร์
               </button>
+
+              <!-- กล่องรวม 2 ปุ่ม (แสดงเฉพาะตอนสร้างบิลแล้ว) -->
+              <div
+                id="action-row"
+                style="display: none; gap: 8px; margin-top: 8px"
+              >
+                <button
+                  class="btn ghost"
+                  style="flex: 1"
+                  onclick="Pos.editOrder()"
+                >
+                  ✏️ แก้ไข
+                </button>
+                <button
+                  class="btn ghost danger"
+                  style="flex: 1"
+                  onclick="Pos.clearCartConfirm()"
+                >
+                  ❌ ยกเลิก
+                </button>
+              </div>
+
+              <!-- ปุ่มล้างตะกร้า (แสดงตอนยังไม่สร้างบิล) -->
               <button
                 class="btn ghost"
                 id="btn-clear"
-                onclick="clearCart()"
+                onclick="Pos.clearCartConfirm()"
                 style="display: none"
               >
-                ล้างตะกร้า
+                🗑️ ล้างตะกร้า
               </button>
             </div>
           </aside>
         </div>
       </section>
 
+      <!-- หน้าจัดการเมนู -->
       <section class="page" id="menu">
-        <h1>จัดการข้อมูลเมนู (Menu Management)</h1>
         <div class="bar">
           <input
             class="search"
             style="margin: 0; width: 300px"
             id="mq"
             placeholder="ค้นหาด้วยรหัส หรือ ชื่อเมนู..."
-            oninput="renderMenuTable()"
+            oninput="Menu.renderTable()"
           />
           <button
             class="btn sm"
             style="margin-left: auto"
-            onclick="openMenuForm()"
+            onclick="Menu.openForm()"
           >
             + เพิ่มเมนูใหม่
           </button>
@@ -138,17 +153,17 @@
         </div>
       </section>
 
+      <!-- หน้ารายงาน -->
       <section class="page" id="report">
-        <h1>รายงานสรุปยอดขาย (Sales Summary)</h1>
         <div class="bar">
-          <select id="period" onchange="renderReport()">
+          <select id="period" onchange="Report.render()">
             <option value="today">วันนี้</option>
             <option value="week">สัปดาห์นี้</option>
           </select>
-          <button class="btn sm" onclick="exportReport()">
+          <button class="btn sm" onclick="Report.exportPDF()">
             ส่งออกรายงาน (PDF)
           </button>
-          <button class="btn sm ghost" onclick="exportCsv()">
+          <button class="btn sm ghost" onclick="Report.exportCsv()">
             ดาวน์โหลด CSV
           </button>
         </div>
@@ -170,20 +185,14 @@
       </section>
     </main>
 
-    <div
-      class="modal"
-      id="checkout"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="co-title"
-    >
+    <!-- Modal: ชำระเงิน / ใบเสร็จ -->
+    <div class="modal" id="checkout" role="dialog">
       <div class="dialog">
         <ol class="steps" id="steps">
           <li>ยืนยันออเดอร์</li>
           <li>ชำระเงิน</li>
           <li>ใบเสร็จ</li>
         </ol>
-
         <div class="co-body" id="co-pay">
           <h2 id="co-title">ชำระเงินสด</h2>
           <div class="bill">บิล #<span id="display-order-id"></span></div>
@@ -200,7 +209,7 @@
               id="cash-received"
               placeholder="0.00"
               min="0"
-              oninput="showChange()"
+              oninput="Pos.showChange()"
             />
             <div class="quick" id="quick"></div>
             <div class="change">
@@ -208,39 +217,36 @@
             </div>
           </div>
           <div class="tr-box" id="tr-box" hidden>
-            <div class="tr-qr">วางรูป QR Code<br />ของร้านที่นี่</div>
+            <div class="tr-qr">วางรูป QR Code ของร้านที่นี่</div>
             <p>
               ให้ลูกค้าสแกนโอนตามยอดที่ต้องชำระ<br />แล้วกดยืนยันเมื่อได้รับเงินโอนแล้ว
             </p>
           </div>
           <div class="co-actions">
-            <button class="btn ghost" onclick="closeCheckout()">
+            <button class="btn ghost" onclick="Pos.closeCheckout()">
               ย้อนกลับ
             </button>
-            <button class="btn" id="btn-pay" onclick="payOrder()" disabled>
+            <button class="btn" id="btn-pay" onclick="Pos.payOrder()" disabled>
               ยืนยันชำระเงิน
             </button>
           </div>
         </div>
-
         <div class="co-body" id="co-receipt" hidden>
           <div class="slip" id="slip"></div>
           <div class="co-actions">
-            <button class="btn ghost" onclick="window.print()">
-              พิมพ์ใบเสร็จ
+            <button class="btn ghost" onclick="Report.printThermalReceipt()">
+              🖨️ พิมพ์ใบเสร็จ
             </button>
-            <button class="btn" onclick="newOrder()">ปิด</button>
+            <button class="btn" onclick="Pos.newOrder()">
+              ปิด / ออเดอร์ถัดไป
+            </button>
           </div>
         </div>
       </div>
     </div>
-    <div
-      class="modal"
-      id="menu-form"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="mf-title"
-    >
+
+    <!-- Modal: จัดการเมนู -->
+    <div class="modal" id="menu-form" role="dialog">
       <div class="dialog">
         <div class="co-body">
           <h2 id="mf-title">เพิ่มเมนูใหม่</h2>
@@ -250,17 +256,17 @@
           <select id="mf-cat"></select>
           <div class="mf-row">
             <div>
-              <label class="co-label" for="mf-price">ราคา (บาท)</label>
-              <input type="number" id="mf-price" min="1" step="0.5" />
+              <label class="co-label">ราคา (บาท)</label
+              ><input type="number" id="mf-price" min="1" step="0.5" />
             </div>
             <div>
-              <label class="co-label" for="mf-stock">สต็อก (ชิ้น)</label>
-              <input type="number" id="mf-stock" min="0" step="1" />
+              <label class="co-label">สต็อก (ชิ้น)</label
+              ><input type="number" id="mf-stock" min="0" step="1" />
             </div>
           </div>
           <div class="co-actions">
-            <button class="btn ghost" onclick="closeMenuForm()">ยกเลิก</button>
-            <button class="btn" id="mf-save" onclick="saveMenu()">
+            <button class="btn ghost" onclick="Menu.closeForm()">ยกเลิก</button>
+            <button class="btn" id="mf-save" onclick="Menu.save()">
               บันทึก
             </button>
           </div>
@@ -268,8 +274,47 @@
       </div>
     </div>
 
-    <div class="toast" id="toast" role="status"></div>
+    <!-- Modal: รายละเอียดออเดอร์รายสาขา -->
+    <div class="modal" id="branch-modal" role="dialog">
+      <div class="dialog" style="width: min(650px, 100%)">
+        <div class="co-body">
+          <h2 id="branch-modal-title">รายละเอียดรายการขาย</h2>
+          <div
+            class="panel"
+            style="margin-top: 12px; max-height: 400px; overflow-y: auto"
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>ออเดอร์</th>
+                  <th>เวลา</th>
+                  <th>เมนู</th>
+                  <th style="text-align: center">จำนวน</th>
+                  <th style="text-align: right">รวม (บาท)</th>
+                </tr>
+              </thead>
+              <tbody id="branch-detail-table"></tbody>
+            </table>
+          </div>
+          <div class="co-actions">
+            <button class="btn ghost" onclick="Report.closeBranchModal()">
+              ปิด
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <script src="script.js"></script>
+    <div class="toast" id="toast" role="status"></div>
+    <div id="global-loader" class="loader-overlay" style="display: none">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- ลิงก์ Scripts แยกไฟล์ -->
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pos.js"></script>
+    <script src="js/menu.js"></script>
+    <script src="js/report.js"></script>
   </body>
 </html>

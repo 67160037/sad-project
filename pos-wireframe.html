@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wireframe - Mid-Fi POS System</title>
+    <style>
+      :root {
+        --bg-main: #f4f5f7;
+        --bg-surface: #ffffff;
+        --border: #c1c7d0;
+        --text-dark: #172b4d;
+        --text-muted: #5e6c84;
+        --wireframe-img: #ebecf0;
+        --btn-primary: #4c9aff;
+        --btn-disabled: #dfe1e6;
+        --alert: #ff991f;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Sarabun", "Loma", sans-serif;
+      }
+      body {
+        display: flex;
+        height: 100vh;
+        background: var(--bg-main);
+        color: var(--text-dark);
+        overflow: hidden;
+      }
+      .sidebar {
+        width: 220px;
+        background: var(--bg-surface);
+        border-right: 2px solid var(--border);
+        display: flex;
+        flex-direction: column;
+      }
+      .logo-box {
+        padding: 20px;
+        border-bottom: 2px solid var(--border);
+        font-weight: 700;
+        font-size: 1.2rem;
+        text-align: center;
+      }
+      .nav-menu {
+        padding-top: 10px;
+        flex: 1;
+      }
+      .nav-item {
+        padding: 15px 20px;
+        cursor: pointer;
+        border-bottom: 1px solid #ebecf0;
+        font-weight: 500;
+      }
+      .nav-item.active {
+        background: #deebff;
+        color: #0052cc;
+        border-right: 4px solid var(--btn-primary);
+      }
+      .main-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .top-header {
+        height: 60px;
+        background: var(--bg-surface);
+        border-bottom: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+      }
+      .branch-selector select {
+        padding: 6px 12px;
+        border: 2px solid var(--border);
+        border-radius: 4px;
+        font-size: 1rem;
+      }
+      .user-info {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+      .page {
+        display: none;
+        padding: 20px;
+        height: calc(100vh - 60px);
+        overflow-y: auto;
+      }
+      .page.active {
+        display: block;
+      }
+      .page-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+      }
+      .card {
+        background: var(--bg-surface);
+        border: 2px solid var(--border);
+        border-radius: 6px;
+        padding: 15px;
+      }
+      .btn {
+        padding: 8px 16px;
+        border: 2px solid var(--border);
+        border-radius: 4px;
+        cursor: pointer;
+        background: var(--bg-surface);
+        font-weight: 600;
+      }
+      .btn-primary {
+        background: var(--btn-primary);
+        color: white;
+        border-color: var(--btn-primary);
+      }
+      .btn:disabled {
+        background: var(--btn-disabled);
+        color: var(--text-muted);
+        cursor: not-allowed;
+        border-color: var(--border);
+      }
+      .input-text {
+        padding: 8px;
+        border: 2px solid var(--border);
+        border-radius: 4px;
+        width: 200px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+      th {
+        background: #fafbfc;
+        color: var(--text-muted);
+      }
+      .pos-grid {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 20px;
+        height: calc(100% - 40px);
+      }
+      .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+      .menu-item {
+        border: 2px solid var(--border);
+        border-radius: 6px;
+        padding: 10px;
+        text-align: center;
+        cursor: pointer;
+        background: var(--bg-surface);
+      }
+      .img-placeholder {
+        height: 80px;
+        background: var(--wireframe-img);
+        border: 2px dashed #c1c7d0;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+      }
+      .cart-area {
+        display: flex;
+        flex-direction: column;
+      }
+      .cart-list {
+        flex: 1;
+        border: 2px solid var(--border);
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 15px;
+        overflow-y: auto;
+        background: var(--bg-surface);
+      }
+      .cart-row {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px dashed var(--border);
+        padding: 8px 0;
+      }
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+      .kpi-box {
+        border: 2px solid var(--border);
+        padding: 20px;
+        border-radius: 6px;
+        background: var(--bg-surface);
+      }
+      .kpi-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-top: 10px;
+      }
+
+      /* ---- polished mid-fi overrides ---- */
+      :root {
+        --bg-main: #f6f7f9;
+        --border: #d9dee5;
+        --text-dark: #1f2a37;
+        --text-muted: #6b7686;
+        --wireframe-img: #eef1f5;
+        --btn-primary: #3b82f6;
+        --alert: #e08a1e;
+      }
+      .sidebar {
+        border-right: 1px solid var(--border);
+        box-shadow: 2px 0 12px rgba(31, 42, 55, 0.04);
+      }
+      .logo-box {
+        border: 2px dashed var(--border);
+        margin: 16px;
+        border-radius: 12px;
+        padding: 16px;
+        font-size: 1rem;
+        color: var(--text-muted);
+      }
+      .nav-menu {
+        padding: 4px 12px;
+      }
+      .nav-item {
+        border: 0;
+        border-radius: 10px;
+        margin-bottom: 4px;
+        padding: 13px 14px;
+        color: var(--text-muted);
+      }
+      .nav-item:hover {
+        background: #f0f3f7;
+      }
+      .nav-item.active {
+        background: #e8f0ff;
+        color: #1d4ed8;
+        border-right: 0;
+        font-weight: 600;
+      }
+      .top-header {
+        border-bottom: 1px solid var(--border);
+        padding: 0 28px;
+      }
+      .branch-selector select {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+      }
+      .page {
+        padding: 24px 28px;
+      }
+      .page-title {
+        font-size: 1.35rem;
+        margin-bottom: 18px;
+      }
+      .card,
+      .kpi-box,
+      .cart-list,
+      .menu-item {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 1px 3px rgba(31, 42, 55, 0.05);
+      }
+      .btn {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-weight: 500;
+        padding: 9px 18px;
+      }
+      .btn-primary {
+        background: var(--btn-primary);
+        border-color: var(--btn-primary);
+        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+      }
+      .input-text {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .img-placeholder {
+        border: 1.5px dashed #c3cad4;
+        border-radius: 10px;
+        background: repeating-linear-gradient(
+          45deg,
+          #f1f4f8,
+          #f1f4f8 8px,
+          #eaeef3 8px,
+          #eaeef3 16px
+        );
+      }
+      .menu-item {
+        padding: 12px;
+      }
+      .menu-item[style*="alert"] {
+        border-color: var(--alert) !important;
+        background: #fffaf2;
+      }
+      .cart-row {
+        border-bottom: 1px dashed var(--border);
+      }
+      th {
+        background: #f6f8fa;
+        font-weight: 500;
+        font-size: 0.88rem;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .kpi-box {
+        padding: 22px;
+      }
+      .kpi-value {
+        font-size: 2rem;
+      }
+      .card[style*="padding: 0"] {
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <div class="logo-box">[ LOGO ร้านกาแฟ ]</div>
+      <div class="nav-menu">
+        <div class="nav-item active" data-page="pos">
+          1. หน้ารับออเดอร์ (POS)
+        </div>
+        <div class="nav-item" data-page="menu">2. หน้าจัดการเมนู</div>
+        <div class="nav-item" data-page="report">3. หน้ารายงานยอดขาย</div>
+      </div>
+    </div>
+    <div class="main-area">
+      <div class="top-header">
+        <div class="branch-selector">
+          <label><strong>สาขาปัจจุบัน:</strong></label>
+          <select id="global-branch">
+            <option>สาขา 1 (บางแสน)</option>
+            <option>สาขา 2 (ศรีราชา)</option>
+            <option>สาขา 3 (พัทยา)</option>
+          </select>
+        </div>
+        <div class="user-info">พนักงาน: พิชชาพร (67160037)</div>
+      </div>
+
+      <div id="pos-page" class="page active">
+        <div class="page-title">รับออเดอร์ (Point of Sale)</div>
+        <div class="pos-grid">
+          <div>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px">
+              <button class="btn">ทั้งหมด</button>
+              <button class="btn">กาแฟ</button>
+              <button class="btn">เบเกอรี่</button>
+              <input
+                type="text"
+                class="input-text"
+                placeholder="ค้นหาเมนู..."
+                style="margin-left: auto"
+              />
+            </div>
+            <div class="menu-grid">
+              <div class="menu-item" onclick="addMockItem()">
+                <div class="img-placeholder">IMG</div>
+                <div style="font-weight: 600">ลาเต้เย็น</div>
+                <div>60.-</div>
+                <div style="font-size: 0.8rem; color: #00875a; margin-top: 5px">
+                  เหลือ: 15
+                </div>
+              </div>
+              <div class="menu-item" style="border-color: var(--alert)">
+                <div class="img-placeholder">IMG</div>
+                <div style="font-weight: 600">มอคค่าร้อน</div>
+                <div>55.-</div>
+                <div
+                  style="
+                    font-size: 0.8rem;
+                    color: var(--alert);
+                    margin-top: 5px;
+                  "
+                >
+                  ⚠ ใกล้หมด (เหลือ 2)
+                </div>
+              </div>
+              <div class="menu-item" style="opacity: 0.5">
+                <div class="img-placeholder">IMG</div>
+                <div style="font-weight: 600">เค้กส้ม</div>
+                <div>75.-</div>
+                <div style="font-size: 0.8rem; color: #de350b; margin-top: 5px">
+                  หมดชั่วคราว
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="cart-area">
+            <div class="cart-list" id="mock-cart">
+              <div
+                style="
+                  text-align: center;
+                  color: var(--text-muted);
+                  margin-top: 50px;
+                "
+              >
+                ยังไม่มีสินค้าในตะกร้า
+              </div>
+            </div>
+            <div class="card">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 5px;
+                "
+              >
+                <span>ยอดรวม</span><span id="mock-total">0.00</span>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  font-weight: 700;
+                  font-size: 1.2rem;
+                  margin-top: 10px;
+                  border-top: 2px solid var(--border);
+                  padding-top: 10px;
+                "
+              >
+                <span>ยอดสุทธิ</span><span id="mock-net">0.00</span>
+              </div>
+              <button
+                class="btn btn-primary"
+                id="btn-pay"
+                style="width: 100%; margin-top: 15px"
+                disabled
+              >
+                ยืนยันชำระเงิน
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="menu-page" class="page">
+        <div class="page-title">จัดการข้อมูลเมนู (Menu Management)</div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+          "
+        >
+          <input
+            type="text"
+            class="input-text"
+            placeholder="ค้นหาด้วยรหัส หรือ ชื่อเมนู..."
+          />
+          <button class="btn btn-primary">+ เพิ่มเมนูใหม่</button>
+        </div>
+        <div class="card" style="padding: 0">
+          <table>
+            <thead>
+              <tr>
+                <th>รหัส</th>
+                <th>ภาพ</th>
+                <th>ชื่อเมนู</th>
+                <th>หมวดหมู่</th>
+                <th>ราคา</th>
+                <th>สต็อกปัจจุบัน</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>101</td>
+                <td>
+                  <div
+                    style="
+                      width: 40px;
+                      height: 30px;
+                      background: var(--wireframe-img);
+                      border: 1px solid var(--border);
+                    "
+                  ></div>
+                </td>
+                <td>ลาเต้เย็น</td>
+                <td>กาแฟ</td>
+                <td>60.00</td>
+                <td>15</td>
+                <td>
+                  <button class="btn" style="padding: 4px 8px">แก้ไข</button>
+                </td>
+              </tr>
+              <tr style="background: #fffdf5">
+                <td>102</td>
+                <td>
+                  <div
+                    style="
+                      width: 40px;
+                      height: 30px;
+                      background: var(--wireframe-img);
+                      border: 1px solid var(--border);
+                    "
+                  ></div>
+                </td>
+                <td>มอคค่าร้อน</td>
+                <td>กาแฟ</td>
+                <td>55.00</td>
+                <td style="color: var(--alert); font-weight: 700">2</td>
+                <td>
+                  <button class="btn" style="padding: 4px 8px">แก้ไข</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="report-page" class="page">
+        <div class="page-title">รายงานสรุปยอดขาย (Sales Summary)</div>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px">
+          <select class="input-text">
+            <option>วันนี้</option>
+            <option>สัปดาห์นี้</option>
+          </select>
+          <button class="btn btn-primary">ส่งออกรายงาน (Export)</button>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-box">
+            <div style="color: var(--text-muted)">ยอดขายรวมทั้งหมด (บาท)</div>
+            <div class="kpi-value">12,450.00</div>
+          </div>
+          <div class="kpi-box">
+            <div style="color: var(--text-muted)">จำนวนออเดอร์ (บิล)</div>
+            <div class="kpi-value">84</div>
+          </div>
+          <div class="kpi-box" style="border-color: var(--alert)">
+            <div style="color: var(--alert)">สินค้าใกล้หมด/หมด</div>
+            <div class="kpi-value" style="color: var(--alert)">2 รายการ</div>
+          </div>
+        </div>
+        <div class="card" style="padding: 0">
+          <div
+            style="
+              padding: 15px;
+              border-bottom: 2px solid var(--border);
+              font-weight: 600;
+            "
+          >
+            เปรียบเทียบยอดขายรายสาขา
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>สาขา</th>
+                <th>จำนวนออเดอร์</th>
+                <th>สัดส่วนชำระเงิน (สด/โอน)</th>
+                <th>ยอดขายรวม (บาท)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>สาขา 1 (บางแสน)</td>
+                <td>45</td>
+                <td>20 / 25</td>
+                <td style="font-weight: 700">6,800.00</td>
+              </tr>
+              <tr>
+                <td>สาขา 2 (ศรีราชา)</td>
+                <td>22</td>
+                <td>10 / 12</td>
+                <td style="font-weight: 700">3,100.00</td>
+              </tr>
+              <tr>
+                <td>สาขา 3 (พัทยา)</td>
+                <td>17</td>
+                <td>12 / 5</td>
+                <td style="font-weight: 700">2,550.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function switchTab(pageId) {
+        document
+          .querySelectorAll(".page")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-item")
+          .forEach((n) => n.classList.remove("active"));
+        document.getElementById(pageId + "-page").classList.add("active");
+        document
+          .querySelector('.nav-item[data-page="' + pageId + '"]')
+          .classList.add("active");
+      }
+      document
+        .querySelectorAll(".nav-item")
+        .forEach((n) =>
+          n.addEventListener("click", () => switchTab(n.dataset.page)),
+        );
+
+      let cartHasItem = false;
+      function addMockItem() {
+        if (!cartHasItem) {
+          document.getElementById("mock-cart").innerHTML =
+            '<div class="cart-row"><div>ลาเต้เย็น <br><small>1 x 60.00</small></div><div style="font-weight:600;">60.00</div></div>';
+          document.getElementById("mock-total").innerText = "60.00";
+          document.getElementById("mock-net").innerText = "60.00";
+          document.getElementById("btn-pay").disabled = false;
+          cartHasItem = true;
+        }
+      }
+    </script>
+  </body>
+</html>

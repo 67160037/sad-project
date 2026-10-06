@@ -1,4 +1,4 @@
-// src/models/menuItemModel.js
+// src/models/menuModel.js
 // wk09: เพิ่มเมธอด CRUD เมนู (findAllByBranch คือ findByBranch เดิม, findByIdAndBranch, create,
 // updateFields, remove) ต่อจาก wk07 — field เดิม (findByIds, findByBranch, decreaseStock) ไม่เปลี่ยน
 const pool = require("../config/db");
@@ -7,7 +7,7 @@ exports.findByIds = async (ids) => {
   if (ids.length === 0) return [];
   const placeholders = ids.map(() => "?").join(",");
   const [rows] = await pool.query(
-    `SELECT menu_id AS id, branch_id, category_id, name, price, stock_quantity, low_stock_threshold
+    `SELECT menu_id AS id, branch_id, category_id, name, price, stock_quantity, low_stock_threshold, is_active
      FROM menu_item WHERE menu_id IN (${placeholders})`,
     ids,
   );
@@ -16,7 +16,7 @@ exports.findByIds = async (ids) => {
 
 exports.findByBranch = async (branchId) => {
   const [rows] = await pool.query(
-    "SELECT menu_id AS id, branch_id, category_id, name, price, stock_quantity, low_stock_threshold FROM menu_item WHERE branch_id = ?",
+    "SELECT menu_id AS id, branch_id, category_id, name, price, stock_quantity, low_stock_threshold, is_active FROM menu_item WHERE branch_id = ? AND is_active = 1",
     [branchId],
   );
   return rows;
@@ -36,7 +36,7 @@ exports.decreaseStock = async (menuId, quantity) => {
 // (เดาแค่ menu_id อย่างเดียวไม่สามารถดึง/แก้/ลบเมนูของสาขาอื่นได้)
 exports.findByIdAndBranch = async (menuId, branchId) => {
   const [rows] = await pool.query(
-    "SELECT menu_id AS id, branch_id, category_id, name, price, stock_quantity, low_stock_threshold FROM menu_item WHERE menu_id = ? AND branch_id = ?",
+    "SELECT menu_id AS id, branch_id, category_id, name, price, stock_quantity, low_stock_threshold, is_active FROM menu_item WHERE menu_id = ? AND branch_id = ? AND is_active = 1",
     [menuId, branchId],
   );
   return rows[0];
@@ -52,8 +52,8 @@ exports.create = async ({
 }) => {
   const [result] = await pool.query(
     `INSERT INTO menu_item
-       (branch_id, category_id, name, price, stock_quantity, low_stock_threshold)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+     (branch_id, category_id, name, price, stock_quantity, low_stock_threshold, is_active)
+   VALUES (?, ?, ?, ?, ?, ?, 1)`, // เพิ่ม is_active และค่า 1 ตรงนี้
     [
       branchId,
       categoryId,
@@ -103,7 +103,7 @@ exports.listCategories = async () => {
 
 exports.remove = async (menuId, branchId) => {
   const [result] = await pool.query(
-    "DELETE FROM menu_item WHERE menu_id = ? AND branch_id = ?",
+    "UPDATE menu_item SET is_active = 0 WHERE menu_id = ? AND branch_id = ?",
     [menuId, branchId],
   );
   return result.affectedRows;

@@ -21,7 +21,7 @@ Claude,Gemini
 > "ช่วยแนะนำวิธีเขียน MySQL Transaction ใน Node.js/Express สำหรับตัดสต็อกพร้อมบันทึก stock_movement และป้องกันสต็อกติดลบให้หน่อย"
 
 **5. ผลลัพธ์จาก AI:**
-AI ออกแบบ Sequence Diagram 2 แผนภาพ (สั่งซื้อ, ชำระเงิน+ตัดสต็อก) พร้อม business rule 7 ข้อและ flowchart เขียนโค้ดตาม diagram (`menuItemModel`, `orderModel`, `stockMovementModel`, `orderController`, `menuController`, `routes`)
+AI ออกแบบ Sequence Diagram 2 แผนภาพ (สั่งซื้อ, ชำระเงิน+ตัดสต็อก) พร้อม business rule 7 ข้อและ flowchart เขียนโค้ดตาม diagram (`menuModel`, `orderModel`, `stockMovementModel`, `orderController`, `menuController`, `routes`)
 และ
 AI ช่วยแนะนำโครงสร้างตัวอย่างการใช้ connection.beginTransaction() และ rollback() ใน orderModel.js รวมถึงแนะนำชุดคำสั่ง SQL Query สำหรับคำนวณยอดขายจาก order_item ตามเงื่อนไขเวลา
 
@@ -44,7 +44,7 @@ Use Case Diagram + Use Case Description 3.1-3.3 (wk04), Class Diagram v1 (wk06),
 
 **2. ส่วนที่ AI ช่วยเขียนโค้ด:**
 
-- `src/models/menuItemModel.js` (เพิ่ม CRUD, decreaseStock รับ transaction)
+- `src/models/menuModel.js` (เพิ่ม CRUD, decreaseStock รับ transaction)
 - `src/models/orderModel.js` (เพิ่ม markPaid)
 - `src/models/stockMovementModel.js` (ไฟล์ใหม่)
 - `src/controllers/orderController.js` (createOrder ปรับ, payOrder ใหม่)

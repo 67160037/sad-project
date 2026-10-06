@@ -80,18 +80,30 @@ exports.getMenuSales = async (branchId, period) => {
   return rows;
 };
 
+exports.getBranchOrders = async (branchId, period) => {
+  const dateCondition = periodCondition(period);
+  const [rows] = await pool.query(
+    `SELECT o.order_id, o.created_at, o.payment_method, 
+            oi.menu_id, m.name AS menu_name, oi.quantity, oi.unit_price,
+            (oi.quantity * oi.unit_price) AS subtotal
+     FROM orders o
+     JOIN order_item oi ON o.order_id = oi.order_id
+     JOIN menu_item m ON oi.menu_id = m.menu_id
+     WHERE o.branch_id = ? AND o.status = 'paid' ${dateCondition}
+     ORDER BY o.created_at DESC`,
+    [branchId],
+  );
+  return rows;
+};
+
 // ==========================================
-// ใหม่ใน wk09: ระบบ Transaction ชำระเงินและตัดสต็อก (ตรงตาม image_2.png)
+// ระบบ Transaction ชำระเงินและตัดสต็อก
 // ==========================================
 exports.markPaid = async (orderId, deductions) => {
-  // ดึง Connection แยกออกมาเพื่อทำ Transaction
   const conn = await pool.getConnection();
   try {
-    // 1. เริ่ม Transaction (เทียบเท่าลูกศร BEGIN ใน Diagram)
     await conn.beginTransaction();
 
-    // 2. อัปเดตสถานะบิลจาก pending เป็น paid
-    // (เพิ่มเงื่อนไข WHERE status = 'pending' เพื่อป้องกัน Race condition)
     const [updateResult] = await conn.query(
       `UPDATE orders SET status = 'paid' WHERE order_id = ? AND status = 'pending'`,
       [orderId],
@@ -101,9 +113,7 @@ exports.markPaid = async (orderId, deductions) => {
       throw new Error("ออเดอร์ไม่ใช่สถานะ pending หรือถูกชำระเงินไปแล้ว");
     }
 
-    // 3. วนลูปตัดสต็อกและบันทึกประวัติ (เทียบเท่า Loop ใน Diagram)
     for (const item of deductions) {
-      // ตัดสต็อก: ต้องมีสต็อกพอ ไม่งั้นไม่อัปเดต (กันสต็อกติดลบ)
       const [stockResult] = await conn.query(
         `UPDATE menu_item
          SET stock_quantity = stock_quantity - ?
@@ -114,25 +124,20 @@ exports.markPaid = async (orderId, deductions) => {
         throw new Error("สต็อกไม่พอ menu_id " + item.menuId);
       }
 
-      // บันทึกประวัติลงตาราง stock_movement
-      // ตารางจริงมีคอลัมน์: menu_id, quantity_change, moved_at (auto), quantity, movement_type
-      // quantity_change = ค่าติดลบเมื่อขายออก, quantity = จำนวนที่ออก (บวก), movement_type = 'OUT'
+      // บันทึกประวัติลงตาราง stock_movement ให้ตรงกับโครงสร้างจริง (มีเฉพาะ menu_id และ quantity_change)[cite: 20]
       await conn.query(
-        `INSERT INTO stock_movement (menu_id, quantity_change, quantity, movement_type)
-         VALUES (?, ?, ?, 'OUT')`,
-        [item.menuId, -item.quantity, item.quantity],
+        `INSERT INTO stock_movement (menu_id, quantity_change)
+         VALUES (?, ?)`,
+        [item.menuId, -item.quantity],
       );
     }
 
-    // 4. ยืนยันการเปลี่ยนแปลง (เทียบเท่าลูกศร COMMIT ใน Diagram)
     await conn.commit();
     return true;
   } catch (error) {
-    // ถ้าระหว่างทำงานพังหรือ error จะยกเลิกข้อมูลทั้งหมดที่แก้ไป (Rollback)
     await conn.rollback();
     throw error;
   } finally {
-    // คืน Connection กลับเข้า Pool
     conn.release();
   }
 };

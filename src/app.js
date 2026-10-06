@@ -4,6 +4,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
+const db = require("./config/db");
 
 // เผื่อเปิดหน้าเว็บจากพอร์ตอื่น (เช่น VS Code Live Server :5500) ไม่ใช่จาก :3000 ตรงๆ
 // ไม่มีบรรทัดนี้ fetch จากพอร์ตอื่นจะถูกเบราว์เซอร์บล็อกด้วย CORS แล้วโยน error
@@ -17,6 +18,16 @@ app.use("/api/orders", orderRoutes);
 
 const menuRoutes = require("./routes/menuRoutes");
 app.use("/api/menu", menuRoutes);
+
+// เพิ่ม API สำหรับดึงหมวดหมู่ทั้งหมดจากฐานข้อมูล cafe
+app.get("/api/categories", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT * FROM category");
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

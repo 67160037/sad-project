@@ -1,7 +1,7 @@
 // src/controllers/orderController.js
 const orderModel = require("../models/orderModel");
 const orderItemModel = require("../models/orderItemModel");
-const menuItemModel = require("../models/menuItemModel");
+const menuModel = require("../models/menuModel");
 const { Order } = require("../models/Order");
 
 // ==========================================
@@ -47,7 +47,13 @@ exports.createOrder = async (req, res) => {
   }
 
   const menuItemIds = [...quantityByMenuItemId.keys()];
-  const menuItems = await menuItemModel.findByIds(menuItemIds);
+  let menuItems;
+  try {
+    menuItems = await menuModel.findByIds(menuItemIds);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "เกิดข้อผิดพลาดในการดึงข้อมูลเมนู" });
+  }
   const menuItemMap = new Map(menuItems.map((m) => [m.id, m]));
 
   // 3. ตรวจสอบเมนูและสาขา
@@ -84,11 +90,12 @@ exports.createOrder = async (req, res) => {
   const totalAmount = order.calculateTotal();
 
   try {
-    // 6. บันทึกข้อมูลลงฐานข้อมูล (สถานะจะเป็น pending ตาม default ของ model)
+    // 6. บันทึกข้อมูลลงฐานข้อมูล (สถานะจะเป็น pending)
     const orderId = await orderModel.create({
       branchId,
       employeeId,
       paymentMethod,
+      totalAmount,
     });
 
     for (const orderItem of order.items) {
@@ -98,7 +105,6 @@ exports.createOrder = async (req, res) => {
         quantity: orderItem.quantity,
         unitPrice: orderItem.unitPrice,
       });
-      // นำ decreaseStock ออกจากตรงนี้ เพื่อให้ตรงกับ Sequence Diagram ที่ให้ตัดตอนชำระเงิน
     }
 
     res.status(201).json({
@@ -107,7 +113,7 @@ exports.createOrder = async (req, res) => {
       employeeId,
       paymentMethod,
       totalAmount,
-      status: "pending", // ยืนยันสถานะรอชำระเงิน
+      status: "pending",
       items: order.items.map((orderItem) => ({
         menuItemId: orderItem.menuItem.id,
         name: orderItem.menuItem.name,
@@ -123,7 +129,7 @@ exports.createOrder = async (req, res) => {
 };
 
 // ==========================================
-// ส่วนที่ 2: ชำระเงินและตัดสต็อกอัตโนมัติ (Transaction)
+// ส่วนที่ 2: ชำระเงินและตัดสต็อกอัตโนมัติ (Transaction ผ่าน Model)
 // ==========================================
 exports.payOrder = async (req, res) => {
   const { id } = req.params;
@@ -148,7 +154,7 @@ exports.payOrder = async (req, res) => {
       0,
     );
 
-    // 3. ตรวจสอบเงินสด (กรณีจ่ายด้วยเงินสด)
+    // 3. ตรวจสอบเงินสด (กรณีจ่ายด้วยเงินสด) หรือเงินโอน (transfer)
     let change = 0;
     if (order.payment_method === "cash") {
       if (cashReceived === undefined || cashReceived < totalAmount) {
@@ -156,31 +162,28 @@ exports.payOrder = async (req, res) => {
       }
       change = cashReceived - totalAmount;
     }
-    // กรณีเงินโอน (transfer) change จะคงค่าเป็น 0 ตามที่กำหนดไว้
 
-    // 4. เข้าสู่ระบบ Transaction: อัปเดตสถานะ, ตัดสต็อก, บันทึกประวัติ
+    // 4. เตรียมข้อมูลรายการที่จะตัดสต็อกส่งให้ Model จัดการ Transaction
     const deductions = items.map((item) => ({
       menuId: item.menu_id,
       quantity: item.quantity,
     }));
+
+    // เรียกใช้ฟังก์ชัน markPaid ใน orderModel (ซึ่งจะจัดการอัปเดตสถานะและลดสต็อกใน Transaction เดียวกัน)
     await orderModel.markPaid(id, deductions);
 
-    // 5. เช็คสต็อกคงเหลือว่ามีเมนูไหนต่ำกว่าเกณฑ์หรือไม่ (Low Stock Check) หลังจากการตัดสต็อกไปแล้ว
+    // 5. เช็คสต็อกคงเหลือหลังตัด เพื่อแจ้งเตือน Low Stock
     const menuIds = deductions.map((d) => d.menuId);
-    const updatedMenuItems = await menuItemModel.findByIds(menuIds);
+    const updatedMenuItems = await menuModel.findByIds(menuIds);
 
     const lowStockMenuIds = [];
     for (const menu of updatedMenuItems) {
-      if (menu.stock_quantity < menu.low_stock_threshold) {
+      if (menu.stock_quantity < (menu.low_stock_threshold || 10)) {
         lowStockMenuIds.push(menu.id);
       }
     }
 
-    if (lowStockMenuIds.length > 0) {
-      console.warn("แจ้งเตือน: สต็อกใกล้หมด สำหรับ menu_id:", lowStockMenuIds);
-    }
-
-    // 6. ตอบกลับ 200 OK ตาม Diagram
+    // 6. ตอบกลับ 200 OK
     res.status(200).json({
       status: "paid",
       change: change,
@@ -192,6 +195,9 @@ exports.payOrder = async (req, res) => {
   }
 };
 
+// ==========================================
+// ส่วนที่ 3: รายงานและจัดการข้อมูลทั่วไป
+// ==========================================
 exports.getSalesSummary = async (req, res) => {
   try {
     const period = req.query.period || "today";
@@ -217,9 +223,6 @@ exports.getMenuSales = async (req, res) => {
   }
 };
 
-// ==========================================
-// ฟังก์ชันดึงข้อมูลพื้นฐาน (ไม่เปลี่ยนจาก wk07)
-// ==========================================
 exports.getAllOrders = async (req, res) => {
   try {
     const orders = await orderModel.findAll();
@@ -241,5 +244,20 @@ exports.getOrderById = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "เกิดข้อผิดพลาดในการดึงข้อมูลออเดอร์" });
+  }
+};
+
+exports.getBranchOrders = async (req, res) => {
+  const branchId = Number(req.query.branchId);
+  const period = req.query.period || "today";
+  if (!Number.isInteger(branchId) || branchId <= 0) {
+    return res.status(400).json({ error: "ต้องระบุ branchId เป็นจำนวนเต็ม" });
+  }
+  try {
+    const orders = await orderModel.getBranchOrders(branchId, period);
+    res.json(orders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการดึงรายการของสาขา" });
   }
 };

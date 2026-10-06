@@ -9,7 +9,7 @@ class OrderItem {
 
     // Snapshot ราคา ณ เวลาที่สั่ง -- ราคาต้องคงที่ตามเวลาที่ลูกค้าสั่ง แม้ภายหลัง
     // ราคาเมนูจะถูกปรับเปลี่ยน ออเดอร์เก่าต้องยังแสดงราคาเดิมที่ลูกค้าจ่ายจริง
-    this.unitPrice = item.price;
+    this.unitPrice = Number(item.price);
   }
 
   getSubtotal() {
