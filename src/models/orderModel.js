@@ -1,5 +1,6 @@
 // src/models/orderModel.js
 const pool = require("../config/db");
+const menuModel = require("./menuModel");
 
 exports.create = async ({ branchId, employeeId, paymentMethod }) => {
   const [result] = await pool.query(
@@ -117,13 +118,13 @@ exports.markPaid = async (orderId, deductions) => {
     }
 
     for (const item of deductions) {
-      const [stockResult] = await conn.query(
-        `UPDATE menu_item
-         SET stock_quantity = stock_quantity - ?
-         WHERE menu_id = ? AND stock_quantity >= ?`,
-        [item.quantity, item.menuId, item.quantity],
+      // เรียก menuModel.decreaseStock(menuId, quantity, conn) ตาม Sequence Diagram
+      const decreased = await menuModel.decreaseStock(
+        item.menuId,
+        item.quantity,
+        conn,
       );
-      if (stockResult.affectedRows === 0) {
+      if (!decreased) {
         throw new Error("สต็อกไม่พอ menu_id " + item.menuId);
       }
 

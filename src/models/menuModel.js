@@ -23,11 +23,16 @@ exports.findByBranch = async (branchId) => {
 };
 
 // ---- ใช้ตอนยืนยันออเดอร์ (wk09) — เตรียมไว้ตั้งแต่ wk07 ตอนนี้ orderController เรียกใช้จริงแล้ว ----
-exports.decreaseStock = async (menuId, quantity) => {
-  await pool.query(
-    "UPDATE menu_item SET stock_quantity = stock_quantity - ? WHERE menu_id = ?",
-    [quantity, menuId],
+// ลดสต็อกตามจำนวน — รับ conn เพื่อให้อยู่ใน Transaction เดียวกับ markPaid
+// (ไม่ส่ง conn มาก็ใช้ pool ปกติ) คืนค่า true ถ้าลดสำเร็จ, false ถ้าสต็อกไม่พอ
+exports.decreaseStock = async (menuId, quantity, conn = pool) => {
+  const [result] = await conn.query(
+    `UPDATE menu_item
+     SET stock_quantity = stock_quantity - ?
+     WHERE menu_id = ? AND stock_quantity >= ?`,
+    [quantity, menuId, quantity],
   );
+  return result.affectedRows > 0;
 };
 
 // ======================= เพิ่มใหม่ใน wk09: CRUD เมนู =======================

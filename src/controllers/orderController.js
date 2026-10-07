@@ -37,6 +37,23 @@ exports.createOrder = async (req, res) => {
     });
   }
 
+  // ตรวจตัวเลือกเมนูที่มาจากหน้ารับออเดอร์
+  for (const item of items) {
+    if (item.sweet !== undefined && typeof item.sweet !== "string") {
+      return res.status(400).json({ error: "ระดับความหวานไม่ถูกต้อง" });
+    }
+    if (item.ice !== undefined && typeof item.ice !== "string") {
+      return res.status(400).json({ error: "ระดับน้ำแข็งไม่ถูกต้อง" });
+    }
+    if (
+      item.extras !== undefined &&
+      (!Array.isArray(item.extras) ||
+        item.extras.some((x) => typeof x !== "string"))
+    ) {
+      return res.status(400).json({ error: "ตัวเลือกเพิ่มเติมไม่ถูกต้อง" });
+    }
+  }
+
   // 2. รวมจำนวนรายการที่เป็นเมนูเดียวกัน
   const quantityByMenuItemId = new Map();
   for (const item of items) {
@@ -85,7 +102,11 @@ exports.createOrder = async (req, res) => {
   const order = new Order(paymentMethod);
   items.forEach((item) => {
     const menuItem = menuItemMap.get(item.menuItemId);
-    order.addItem(menuItem, item.quantity);
+    order.addItem(menuItem, item.quantity, {
+      sweet: item.sweet,
+      ice: item.ice,
+      extras: item.extras,
+    });
   });
   const totalAmount = order.calculateTotal();
 
@@ -104,6 +125,9 @@ exports.createOrder = async (req, res) => {
         menuId: orderItem.menuItem.id,
         quantity: orderItem.quantity,
         unitPrice: orderItem.unitPrice,
+        sweet: orderItem.sweet,
+        ice: orderItem.ice,
+        extras: orderItem.extras,
       });
     }
 
@@ -120,6 +144,9 @@ exports.createOrder = async (req, res) => {
         unitPrice: orderItem.unitPrice,
         quantity: orderItem.quantity,
         subtotal: orderItem.getSubtotal(),
+        sweet: orderItem.sweet,
+        ice: orderItem.ice,
+        extras: orderItem.extras,
       })),
     });
   } catch (err) {

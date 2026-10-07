@@ -5,10 +5,26 @@
 const pool = require("../config/db");
 
 // เพิ่มรายการสินค้าเข้าออเดอร์ (unitPrice คือ snapshot ราคา ณ ตอนสั่งซื้อ)
-exports.addItem = async ({ orderId, menuId, quantity, unitPrice }) => {
+exports.addItem = async ({
+  orderId,
+  menuId,
+  quantity,
+  unitPrice,
+  sweet,
+  ice,
+  extras,
+}) => {
   const [result] = await pool.query(
-    "INSERT INTO order_item (order_id, menu_id, quantity, unit_price) VALUES (?, ?, ?, ?)",
-    [orderId, menuId, quantity, unitPrice],
+    "INSERT INTO order_item (order_id, menu_id, quantity, unit_price, sweet_level, ice_level, extras) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    [
+      orderId,
+      menuId,
+      quantity,
+      unitPrice,
+      sweet || null,
+      ice || null,
+      JSON.stringify(extras || []),
+    ],
   );
   return result.insertId;
 };
@@ -17,13 +33,22 @@ exports.addItem = async ({ orderId, menuId, quantity, unitPrice }) => {
 exports.findByOrderId = async (orderId) => {
   const [rows] = await pool.query(
     `SELECT oi.order_item_id, oi.order_id, oi.menu_id, oi.quantity, oi.unit_price,
+            oi.sweet_level, oi.ice_level, oi.extras,
             m.name AS menu_name
      FROM order_item oi
      JOIN menu_item m ON m.menu_id = oi.menu_id
      WHERE oi.order_id = ?`,
     [orderId],
   );
-  return rows;
+  return rows.map((row) => {
+    let extras = [];
+    try {
+      extras = row.extras ? JSON.parse(row.extras) : [];
+    } catch (_) {
+      extras = [];
+    }
+    return { ...row, extras };
+  });
 };
 
 // คำนวณยอดรวมย่อย (สอดคล้องกับ method getSubtotal() ใน Class Diagram)

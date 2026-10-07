@@ -31,47 +31,84 @@ button {
   outline: 3px solid #8fd6bd;
   outline-offset: 2px;
 }
+/* ==============================
+   SIDEBAR / NAVIGATION
+   ============================== */
 .side {
-  width: 236px;
-  background: var(--ink);
-  color: #cfe3dd;
-  padding: 20px 14px;
+  width: 266px;
+  min-width: 266px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #103c35 0%, #0d342f 100%);
+  color: #dcebe7;
+  padding: 22px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
+  box-shadow: 4px 0 18px rgba(20, 48, 44, 0.08);
 }
 .logo {
-  border: 1.5px dashed #4a7068;
-  border-radius: 14px;
-  padding: 16px;
+  border: 1px solid rgba(143, 214, 189, 0.28);
+  border-radius: 18px;
+  padding: 18px 14px;
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   color: #fff;
   font-weight: 600;
+  background: rgba(255, 255, 255, 0.035);
+  transition: 0.2s ease;
+}
+.logo:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(143, 214, 189, 0.45);
 }
 .logo span {
   display: block;
-  font-size: 1.8rem;
+  font-size: 2.25rem;
+  line-height: 1;
+  margin-bottom: 10px;
 }
 .nav {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 14px;
-  border-radius: 12px;
-  color: #a9c6be;
-  background: none;
-  border: 0;
+  gap: 13px;
+  width: 100%;
+  min-height: 54px;
+  padding: 12px 15px;
+  border-radius: 14px;
+  color: #b9d2cb;
+  background: transparent;
+  border: 1px solid transparent;
   text-align: left;
-  font-size: 0.95rem;
+  font-size: 0.98rem;
+  font-weight: 500;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .nav:hover {
-  background: #1a3b36;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  transform: translateX(2px);
 }
 .nav.on {
   background: var(--brand);
   color: #fff;
   font-weight: 600;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+}
+.nav.on::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: #dff8ef;
 }
 main {
   flex: 1;
@@ -643,28 +680,42 @@ tr.me td {
 }
 .slip-table > div {
   display: grid;
-  grid-template-columns: 1fr 52px 52px 64px;
+  grid-template-columns: minmax(0, 1fr) 52px 52px 64px;
   gap: 6px;
-  padding: 5px 0;
+  padding: 7px 0;
+  align-items: start;
 }
+
 .slip-table span:nth-child(n + 2) {
   text-align: right;
 }
+
 .slip-table .th {
   font-weight: 700;
 }
-.slip-total {
+
+/* ชื่อเมนู + รายละเอียด */
+.slip-item-name {
+  min-width: 0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.35;
 }
-.slip-total span {
-  font-weight: 700;
-  font-size: 1.15rem;
+
+.slip-item-name strong {
+  display: block;
+  line-height: 1.35;
 }
-.slip-total strong {
-  font-size: 2.6rem;
-  line-height: 1.1;
+
+/* รายละเอียดเมนู เช่น หวาน 50% · น้ำแข็งน้อย */
+.slip-item-options {
+  display: block;
+  color: var(--mute);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: break-word;
 }
 .slip-row {
   display: flex;
@@ -880,4 +931,53 @@ tr.me td {
   top: 0;
   background: #f8faf7;
   z-index: 1;
+}
+
+.employee-select {
+  min-width: 190px;
+  color: var(--mute);
+  cursor: pointer;
+}
+.item-option-group {
+  margin-top: 16px;
+}
+.item-option-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.item-option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.item-option {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 9px 7px;
+  cursor: pointer;
+}
+.item-option.selected {
+  border-color: var(--brand);
+  background: #e3f1ec;
+  color: var(--brand-d);
+  font-weight: 600;
+}
+.item-option-wide {
+  grid-column: 1/-1;
+}
+.cart-options {
+  color: var(--mute);
+  line-height: 1.45;
+}
+@media (max-width: 700px) {
+  .employee-select {
+    min-width: 150px;
+    max-width: 45vw;
+  }
+  .item-option-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
